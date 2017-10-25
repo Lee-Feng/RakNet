@@ -46,11 +46,11 @@ enum SampleResult
 	SUCCEEDED
 };
 
-#define SUPPORT_UPNP FAILED
-#define SUPPORT_NAT_TYPE_DETECTION FAILED
-#define SUPPORT_NAT_PUNCHTHROUGH PENDING
-#define SUPPORT_ROUTER2 FAILED
-#define SUPPORT_UDP_PROXY FAILED
+#define SUPPORT_UPNP				PENDING
+#define SUPPORT_NAT_TYPE_DETECTION	PENDING
+#define SUPPORT_NAT_PUNCHTHROUGH	PENDING
+#define SUPPORT_ROUTER2				PENDING
+#define SUPPORT_UDP_PROXY			PENDING
 
 struct SampleFramework
 {
@@ -67,6 +67,8 @@ struct SampleFramework
 	SampleResult sampleResult;
 };
 
+/// 获取自己已经连接到的服务器列表。
+/// 如果有一个，那么直接返回这个。如果有多个，就让用户选一个。
 SystemAddress SelectAmongConnectedSystems(RakNet::RakPeerInterface *rakPeer, const char *hostName)
 {
 	DataStructures::List<SystemAddress> addresses;
@@ -100,14 +102,23 @@ SystemAddress SelectAmongConnectedSystems(RakNet::RakPeerInterface *rakPeer, con
 	else
 		return addresses[0];
 };
+
+/// 连接到用户输入的NAT服务器和端口，如果没有输入，那么就用默认的主机名和端口
+/// param[in] hostName 该服务器提示符的名字，方便用户确定要数据的是什么服务器的信息
+/// param[in] defaultAddress 用户没有输入服务器时使用的默认地址
+/// param[in] defaultPort 用户没有输入服务器时使用的默认端口
+/// \return 服务器的地址信息，无法连接就返回UNASSIGNED_SYSTEM_ADDRESS
 SystemAddress ConnectBlocking(RakNet::RakPeerInterface *rakPeer, const char *hostName, const char *defaultAddress, const char *defaultPort)
 {
 	char ipAddr[64];
+	// 如果没有默认的服务器地址，那么提示必须输入，否则可以使用默认值
 	if (defaultAddress==0 || defaultAddress[0]==0)
 		printf("Enter IP of system %s is running on: ", hostName);
 	else
 		printf("Enter IP of system %s, or press enter for default: ", hostName);
 	Gets(ipAddr,sizeof(ipAddr));
+
+	// 没有输入，就用默认的，如果没有默认的就报错
 	if (ipAddr[0]==0)
 	{
 		if (defaultAddress==0 || defaultAddress[0]==0)
@@ -138,6 +149,12 @@ SystemAddress ConnectBlocking(RakNet::RakPeerInterface *rakPeer, const char *hos
 			strcpy(port, defaultPort);
 		}
 	}
+
+	// 开始连接,非阻塞
+	// 是否连接成功通过如下接口判断：
+	// GetConnectionState() returns IS_CONNECTED 或者
+	// Receive() gets a message with the type identifier ID_CONNECTION_REQUEST_ACCEPTED.
+	// 返回CONNECTION_ATTEMPT_STARTED就代表开始连接了（不一定连接成功了）
 	if (rakPeer->Connect(ipAddr, atoi(port), 0, 0)!=RakNet::CONNECTION_ATTEMPT_STARTED)
 	{
 		printf("Failed connect call for %s.\n", hostName);
@@ -150,11 +167,11 @@ SystemAddress ConnectBlocking(RakNet::RakPeerInterface *rakPeer, const char *hos
 		for (packet=rakPeer->Receive(); packet; rakPeer->DeallocatePacket(packet), packet=rakPeer->Receive())
 		{
 			if (packet->data[0]==ID_CONNECTION_REQUEST_ACCEPTED)
-			{
+			{// 连接成功了
 				return packet->systemAddress;
 			}
 			else if (packet->data[0]==ID_NO_FREE_INCOMING_CONNECTIONS)
-			{
+			{// 服务器无法接受多余的连接了
 				printf("ID_NO_FREE_INCOMING_CONNECTIONS");
 				return RakNet::UNASSIGNED_SYSTEM_ADDRESS;
 			}
@@ -297,6 +314,8 @@ struct NatTypeDetectionFramework : public SampleFramework
 	{
 		if (sampleResult==FAILED) return;
 
+		// 先看rakPeer是否有连过其他服务器，有就直接选一个作为NatTypeDetectionServer
+		// 否则就用户输入一个来连接
 		SystemAddress serverAddress=SelectAmongConnectedSystems(rakPeer, "NatTypeDetectionServer");
 		if (serverAddress==RakNet::UNASSIGNED_SYSTEM_ADDRESS)
 		{
@@ -308,6 +327,9 @@ struct NatTypeDetectionFramework : public SampleFramework
 				return;
 			}
 		}
+
+		// 创建一个NAT类型检测的插件添加到rakPeer，然后开始检测NAT类型
+		// 前提是服务器地址是运行的NatTypeDetectionServer
 		ntdc = new NatTypeDetectionClient;
 		rakPeer->AttachPlugin(ntdc);
 		ntdc->DetectNATType(serverAddress);
@@ -773,11 +795,11 @@ int main(void)
 
 	SampleFramework *samples[FEATURE_LIST_COUNT];
 	unsigned int i=0;
-	samples[i++] = new UPNPFramework;
-	samples[i++] = new NatTypeDetectionFramework;
-	samples[i++] = new NatPunchthoughClientFramework;
-	samples[i++] = new Router2Framework;
-	samples[i++] = new UDPProxyClientFramework;
+	samples[i++] = new UPNPFramework();
+	samples[i++] = new NatTypeDetectionFramework();
+	samples[i++] = new NatPunchthoughClientFramework();
+	samples[i++] = new Router2Framework();
+	samples[i++] = new UDPProxyClientFramework();
 	assert(i==FEATURE_LIST_COUNT);
 
 	bool isFirstPrint=true;
