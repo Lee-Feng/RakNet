@@ -41,7 +41,7 @@ using namespace RakNet;
 
 enum SampleResult
 {
-	PENDING,
+	PENDING,	// 代表待定，目前未知，需要检测
 	FAILED,
 	SUCCEEDED
 };
@@ -336,10 +336,12 @@ struct NatTypeDetectionFramework : public SampleFramework
 		timeout=RakNet::GetTimeMS() + 5000;
 	}
 
+	/// 每收到一个包就检测下是否是NAT类型检测结果包，是就提取出类型
 	virtual void ProcessPacket(Packet *packet)
 	{
 		if (packet->data[0]==ID_NAT_TYPE_DETECTION_RESULT)
 		{
+			// 打印出当前的NAT类型，并列出该NAT类型可以连接的NAT类型
 			RakNet::NATTypeDetectionResult r = (RakNet::NATTypeDetectionResult) packet->data[1];
 			printf("NAT Type is %s (%s)\n", NATTypeDetectionResultToString(r), NATTypeDetectionResultToStringFriendly(r));
 			printf("Using NATPunchthrough can connect to systems using:\n");
@@ -383,6 +385,7 @@ struct NatTypeDetectionFramework : public SampleFramework
 	RakNet::TimeMS timeout;
 };
 
+/// 集成了NatPunchthroughDebugInterface_Printf，用于在OnClientMessage回调时把收到的消息打印出来
 struct NatPunchthoughClientFramework : public SampleFramework, public NatPunchthroughDebugInterface_Printf
 {
 	SystemAddress serverAddress;
@@ -398,6 +401,7 @@ struct NatPunchthoughClientFramework : public SampleFramework, public NatPunchth
 	{
 		if (sampleResult==FAILED) return;
 
+		// 连接到NatPunchthroughServer
 		serverAddress=SelectAmongConnectedSystems(rakPeer, "NatPunchthroughServer");
 		if (serverAddress==RakNet::UNASSIGNED_SYSTEM_ADDRESS)
 		{
@@ -410,18 +414,26 @@ struct NatPunchthoughClientFramework : public SampleFramework, public NatPunchth
 			}
 		}
 
+		// 添加NAT打洞客户端到rakPeer
 		npClient = new NatPunchthroughClient;
 		npClient->SetDebugInterface(this);
 		rakPeer->AttachPlugin(npClient);
 
-
+		// 连接到指定的一个客户端(UUID)或者开始监听外界通知(告知穿越服务器自己的信息，外部端口等)
+		// 客户端的ID是构造的时候就生成了。RakPeer::GenerateGUID
+		// UUID就是一个64Bit的数8字节
 		char guid[128];
 		printf("Enter RakNetGuid of the remote system, which should have already connected\nto the server.\nOr press enter to just listen.\n");
 		Gets(guid,sizeof(guid));
 		if (guid[0])
 		{
+			// 通过NatPunchthroughServer连接到指定的一个peer
+			// 要能连接成功，那么peer也应该连接上了NatPunchthroughServer
 			RakNetGUID remoteSystemGuid;
 			remoteSystemGuid.FromString(guid);
+			// 当然这里也并不是马上就连，我们还是监听消息获得连接结果
+			// ID_NAT_PUNCHTHROUGH_SUCCEEDED on success
+			// 打洞结果的处理见：ProcessPacket
 			npClient->OpenNAT(remoteSystemGuid, serverAddress);
 			isListening=false;
 
@@ -488,6 +500,7 @@ struct NatPunchthoughClientFramework : public SampleFramework, public NatPunchth
 			else
 				printf("NAT punch success from remote system %s.\n", packet->systemAddress.ToString(true));
 
+			/// 接受控制，开始下一个对端的连接
 			char guid[128];
 			printf("Enter RakNetGuid of the remote system, which should have already connected.\nOr press enter to quit.\n");
 			Gets(guid,sizeof(guid));
@@ -526,6 +539,7 @@ struct NatPunchthoughClientFramework : public SampleFramework, public NatPunchth
 	bool isListening;
 };
 
+///???都没有Success？？？
 struct Router2Framework : public SampleFramework
 {
 	// Set to FAILED to skip this test
@@ -776,6 +790,13 @@ enum FeatureList
 };
 int main(void)
 {
+	// 创建一个RakPeerInterface对象指针。
+	// STATIC_FACTORY_DEFINITIONS(RakPeerInterface,RakPeer) 
+	// 这里调用RakNet::RakPeerInterface的抽象接口其实是在RakPeer文件实现的。返回了RakPeer对象指针。
+	// 这时也就确定了RakPeer的UUID，因为构造的时候回生成一个UUID
+	// UUID就是随机数，与MAC值无关。
+	// 该peer用于连接：NatTypeDetectionServer和NatPunchthroughServer
+	// 而p2p通信时使用的是NatPunchthroughClient->OpenNAT
 	RakNet::RakPeerInterface *rakPeer=RakNet::RakPeerInterface::GetInstance();
 	printf("Enter local port, or press enter for default: ");
 	char buff[64];
@@ -783,6 +804,8 @@ int main(void)
 	unsigned short port = DEFAULT_RAKPEER_PORT;
 	if (buff[0]!=0)
 		port = atoi(buff);
+	// 指定本地绑定的接口，可以指定多个。
+	// 然后再connect的时候指定索引即可指定使用哪个socket通信
 	RakNet::SocketDescriptor sd(port,0);
 	if (rakPeer->Startup(32,&sd,1)!=RakNet::RAKNET_STARTED)
 	{

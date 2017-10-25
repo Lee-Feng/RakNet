@@ -433,6 +433,7 @@ struct Packet
 	/// A unique identifier for the system that sent this packet, regardless of IP address (internal / external / remote system)
 	/// Only valid once a connection has been established (ID_CONNECTION_REQUEST_ACCEPTED, or ID_NEW_INCOMING_CONNECTION)
 	/// Until that time, will be UNASSIGNED_RAKNET_GUID
+	/// 发送方的ID
 	RakNetGUID guid;
 
 	/// The length of the data in bytes
@@ -442,6 +443,7 @@ struct Packet
 	BitSize_t bitSize;
 
 	/// The data from the sender
+	/// 不同的消息这里的内容不一样，[0]总是消息类型DefaultMessageIDTypes
 	unsigned char* data;
 
 	/// @internal

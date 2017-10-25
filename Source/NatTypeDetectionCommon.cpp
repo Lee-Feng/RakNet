@@ -73,13 +73,13 @@ const char *RakNet::NATTypeDetectionResultToStringFriendly(NATTypeDetectionResul
 	{
 	case NAT_TYPE_NONE:
 		return "Open";
-	case NAT_TYPE_FULL_CONE:
+	case NAT_TYPE_FULL_CONE:/// 属于比较宽泛的NAT类型，打洞比较方便
 		return "Relaxed";
 	case NAT_TYPE_ADDRESS_RESTRICTED:
 		return "Relaxed";
-	case NAT_TYPE_PORT_RESTRICTED:
+	case NAT_TYPE_PORT_RESTRICTED:	// 属于比较适中，受限的
 		return "Moderate";
-	case NAT_TYPE_SYMMETRIC:
+	case NAT_TYPE_SYMMETRIC:		// 最严格的方式
 		return "Strict";
 	case NAT_TYPE_UNKNOWN:
 		return "Unknown";

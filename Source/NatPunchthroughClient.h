@@ -145,6 +145,7 @@ public:
 	/// This will determine the stride that your router uses when assigning ports, if your router is full-cone
 	/// This function is also called automatically when you call OpenNAT - however, calling it earlier when you are connected to the facilitator will speed up the process
 	/// \param[in] destination The system to punch. Must already be connected to \a facilitator
+	/// 也就是说得到自己的数据包的外部端口
 	void FindRouterPortStride(const SystemAddress &facilitator);
 
 	/// Punchthrough a NAT. Doesn't connect, just tries to setup the routing table

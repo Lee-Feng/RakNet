@@ -68,6 +68,10 @@ void NatPunchthroughClient::FindRouterPortStride(const SystemAddress &facilitato
 
 	RakNet::BitStream outgoingBs;
 	outgoingBs.Write((MessageID)ID_NAT_REQUEST_BOUND_ADDRESSES);
+	// 通过本地绑定的第一个端口给指定的服务器发数据
+	// 就是StartUp传入的描述符数组的第一个
+	// 对应的回复消息就是ID_NAT_RESPOND_BOUND_ADDRESSES
+	// 在OnReceive接口分析数据包得到
 	rakPeerInterface->Send(&outgoingBs,HIGH_PRIORITY,RELIABLE_ORDERED,0,facilitator,false);
 }
 bool NatPunchthroughClient::OpenNAT(RakNetGUID destination, const SystemAddress &facilitator)

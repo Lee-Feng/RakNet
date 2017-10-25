@@ -48,6 +48,9 @@ enum OutOfBandIdentifiers
 /// \endcode 
 ///
 /// \note All these enumerations should be casted to (unsigned char) before writing them to RakNet::BitStream
+/// 消息的ID，每个消息ID只能是一个字节,定义在RakNetTypes.h中。最大值就是255
+///		First byte of a network message
+///		typedef unsigned char MessageID;
 enum DefaultMessageIDTypes
 {
 	//

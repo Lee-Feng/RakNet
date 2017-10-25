@@ -264,48 +264,6 @@ RakPeer::RakPeer()
 
 	remoteSystemIndexPool.SetPageSize(sizeof(DataStructures::MemoryPool<RemoteSystemIndex>::MemoryWithPage)*32);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	GenerateGUID();
 
 	quitAndDataEvents.InitEvent();
@@ -4465,35 +4423,6 @@ union Buff6AndBuff8
 uint64_t RakPeerInterface::Get64BitUniqueRandomNumber(void)
 {
 	// Mac address is a poor solution because you can't have multiple connections from the same system
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #if   defined(_WIN32)
 	uint64_t g=RakNet::GetTimeUS();
