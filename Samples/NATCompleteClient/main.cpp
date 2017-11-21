@@ -37,7 +37,7 @@ using namespace RakNet;
 #define DEFAULT_RAKPEER_PORT 50000
 #define RAKPEER_PORT_STR "0"
 #define DEFAULT_SERVER_PORT "61111"
-#define DEFAULT_SERVER_ADDRESS "natpunch.jenkinssoftware.com"
+#define DEFAULT_SERVER_ADDRESS "192.168.1.5"
 
 enum SampleResult
 {
@@ -185,7 +185,7 @@ SystemAddress ConnectBlocking(RakNet::RakPeerInterface *rakPeer, const char *hos
 }
 struct UPNPFramework : public SampleFramework
 {
-	UPNPFramework() { sampleResult=SUPPORT_UPNP;} 
+	UPNPFramework() { sampleResult=FAILED;/*SUPPORT_UPNP*/;} 
 	virtual const char * QueryName(void) {return "UPNPFramework";}
 	virtual bool QueryRequiresServer(void) {return false;}
 	virtual const char * QueryFunction(void) {return "Use UPNP to open the router";}
@@ -304,7 +304,7 @@ struct UPNPFramework : public SampleFramework
 struct NatTypeDetectionFramework : public SampleFramework
 {
 	// Set to FAILED to skip this test
-	NatTypeDetectionFramework() { sampleResult=SUPPORT_NAT_TYPE_DETECTION; ntdc=0;}
+	NatTypeDetectionFramework() { sampleResult=FAILED;/*SUPPORT_NAT_TYPE_DETECTION*/; ntdc=0;}
 	virtual const char * QueryName(void) {return "NatTypeDetectionFramework";}
 	virtual bool QueryRequiresServer(void) {return true;}
 	virtual const char * QueryFunction(void) {return "Determines router type to avoid NAT punch attempts that cannot\nsucceed.";}
@@ -391,7 +391,7 @@ struct NatPunchthoughClientFramework : public SampleFramework, public NatPunchth
 	SystemAddress serverAddress;
 
 	// Set to FAILED to skip this test
-	NatPunchthoughClientFramework() { sampleResult=SUPPORT_NAT_PUNCHTHROUGH; npClient=0;}
+	NatPunchthoughClientFramework() { sampleResult=FAILED/*SUPPORT_NAT_PUNCHTHROUGH*/; npClient=0;}
 	virtual const char * QueryName(void) {return "NatPunchthoughClientFramework";}
 	virtual bool QueryRequiresServer(void) {return true;}
 	virtual const char * QueryFunction(void) {return "Causes two systems to try to connect to each other at the same\ntime, to get through routers.";}
@@ -543,7 +543,7 @@ struct NatPunchthoughClientFramework : public SampleFramework, public NatPunchth
 struct Router2Framework : public SampleFramework
 {
 	// Set to FAILED to skip this test
-	Router2Framework() { sampleResult=SUPPORT_ROUTER2; router2=0;}
+	Router2Framework() { sampleResult=FAILED;/*SUPPORT_ROUTER2*/; router2=0;}
 	virtual const char * QueryName(void) {return "Router2Framework";}
 	virtual bool QueryRequiresServer(void) {return false;}
 	virtual const char * QueryFunction(void) {return "Connect to a peer we cannot directly connect to using the\nbandwidth of a shared peer.";}
@@ -624,7 +624,7 @@ struct UDPProxyClientFramework : public SampleFramework, public UDPProxyClientRe
 	virtual bool QueryRequiresServer(void) {return true;}
 	virtual const char * QueryFunction(void) {return "Connect to a peer using a shared server connection.";}
 	virtual const char * QuerySuccess(void) {return "We can now communicate with the other system, including connecting, within 5 seconds.";}
-	virtual bool QueryQuitOnSuccess(void) {return false;}
+	virtual bool QueryQuitOnSuccess(void) {return true;}
 	virtual void Init(RakNet::RakPeerInterface *rakPeer)
 	{
 		if (sampleResult==FAILED) return;
@@ -798,15 +798,17 @@ int main(void)
 	// 该peer用于连接：NatTypeDetectionServer和NatPunchthroughServer
 	// 而p2p通信时使用的是NatPunchthroughClient->OpenNAT
 	RakNet::RakPeerInterface *rakPeer=RakNet::RakPeerInterface::GetInstance();
-	printf("Enter local port, or press enter for default: ");
-	char buff[64];
-	Gets(buff,sizeof(buff));
-	unsigned short port = DEFAULT_RAKPEER_PORT;
-	if (buff[0]!=0)
-		port = atoi(buff);
+	printf("myid = %s\n",rakPeer->GetMyGUID().ToString());
+	//printf("Enter local port, or press enter for default: ");
+	//char buff[64];
+	//Gets(buff,sizeof(buff));
+	//unsigned short port = DEFAULT_RAKPEER_PORT;
+	//if (buff[0]!=0)
+	//	port = atoi(buff);
 	// 指定本地绑定的接口，可以指定多个。
 	// 然后再connect的时候指定索引即可指定使用哪个socket通信
-	RakNet::SocketDescriptor sd(port,0);
+	//RakNet::SocketDescriptor sd(port,0);
+	RakNet::SocketDescriptor sd;
 	if (rakPeer->Startup(32,&sd,1)!=RakNet::RAKNET_STARTED)
 	{
 		printf("Failed to start rakPeer! Quitting\n");
@@ -836,15 +838,15 @@ int main(void)
 		printf("\n%s\nRequires server: %s\nDescription: %s\n", samples[i]->QueryName(), samples[i]->QueryRequiresServer()==1 ? "Yes" : "No", samples[i]->QueryFunction());
 	}
 
-	printf("\nDo you have a server running the NATCompleteServer project? (y/n): ");
+	//printf("\nDo you have a server running the NATCompleteServer project? (y/n): ");
 
-	char responseLetter=getche();
+	char responseLetter='y';//getche();
 	bool hasServer=responseLetter=='y' || responseLetter=='Y' || responseLetter==' ';
 	printf("\n");
 	if (hasServer==false)
 		printf("Note: Only UPNP and Router2 are supported without a server\nYou may want to consider using the Lobby2/Steam project. They host the\nservers for you.\n\n");
 
-	FeatureList currentStage=_UPNPFramework;
+	FeatureList currentStage=_UDPProxyClientFramework;//_UPNPFramework;
 
 	if (hasServer==false)
 	{
